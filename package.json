@@ -1,0 +1,12 @@
+{
+  "name": "react-rules-engine",
+  "private": true,
+  "description": "A fully type-safe, reusable rules engine for complex, nested React forms — with a Zustand+Zod demo",
+  "scripts": {
+    "build": "pnpm --filter @react-rules-engine/lib build && pnpm --filter example build",
+    "test": "pnpm --filter @react-rules-engine/lib test",
+    "test:watch": "pnpm --filter @react-rules-engine/lib test:watch",
+    "dev": "pnpm --filter example dev",
+    "typecheck": "pnpm --filter @react-rules-engine/lib typecheck && pnpm --filter example exec tsc --noEmit"
+  }
+}
