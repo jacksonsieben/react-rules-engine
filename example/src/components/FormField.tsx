@@ -19,6 +19,7 @@
 
 import React from 'react';
 import { usePitchStore } from '../store/pitchStore';
+import { defaultFieldMeta } from '@react-rules-engine/lib';
 import type { PathsOf } from '@react-rules-engine/lib';
 import type { PitchForm } from '../schema/pitchSchema';
 
@@ -29,9 +30,12 @@ interface FormFieldProps {
   hint?: string;
 }
 
+const EMPTY_META = defaultFieldMeta();
+const EMPTY_ZOD_ERRORS: string[] = [];
+
 export function FormField({ path, label, children, hint }: FormFieldProps) {
-  const meta = usePitchStore((s) => s.getMeta(path));
-  const zodErrors = usePitchStore((s) => s.zodErrors[path as string] ?? []);
+  const meta = usePitchStore((s) => s.result.fields[path] ?? EMPTY_META);
+  const zodErrors = usePitchStore((s) => s.zodErrors[path as string] ?? EMPTY_ZOD_ERRORS);
 
   // Hidden fields are not rendered
   if (meta.hidden) return null;

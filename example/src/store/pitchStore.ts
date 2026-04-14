@@ -14,8 +14,8 @@
  */
 
 import { create } from 'zustand';
-import { evaluate, getFieldMeta } from '@react-rules-engine/lib';
-import type { EvaluationResult, PathsOf, FieldMeta } from '@react-rules-engine/lib';
+import { evaluate } from '@react-rules-engine/lib';
+import type { EvaluationResult, PathsOf } from '@react-rules-engine/lib';
 import { pitchSchema, defaultPitchValues } from '../schema/pitchSchema';
 import type { PitchForm } from '../schema/pitchSchema';
 import { pitchRules } from '../rules/pitchRules';
@@ -69,10 +69,6 @@ export interface PitchStore {
    */
   submit(onSuccess?: (values: PitchForm) => void): boolean;
 
-  // --- Selectors (memoised inline for simplicity) ---
-
-  /** Get the FieldMeta for a specific field path. */
-  getMeta(path: PathsOf<PitchForm>): FieldMeta;
 }
 
 // ---------------------------------------------------------------------------
@@ -161,9 +157,5 @@ export const usePitchStore = create<PitchStore>((set, get) => ({
     }
 
     return isValid;
-  },
-
-  getMeta(path) {
-    return getFieldMeta(get().result, path);
   },
 }));
