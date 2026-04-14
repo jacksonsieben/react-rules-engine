@@ -14,8 +14,8 @@
  */
 
 import { create } from 'zustand';
-import { evaluate } from '@react-rules-engine/lib';
-import type { EvaluationResult, PathsOf } from '@react-rules-engine/lib';
+import { collectDialogs, evaluate } from '@react-rules-engine/lib';
+import type { DialogEvent, EvaluationResult, PathsOf } from '@react-rules-engine/lib';
 import { pitchSchema, defaultPitchValues } from '../schema/pitchSchema';
 import type { PitchForm } from '../schema/pitchSchema';
 import { pitchRules } from '../rules/pitchRules';
@@ -43,6 +43,9 @@ export interface PitchStore {
   /** Set when the form was successfully submitted */
   isSubmitted: boolean;
 
+  /** Active dialog emitted by rule transitions. */
+  activeDialog: DialogEvent | null;
+
   // --- Actions ---
 
   /**
@@ -68,6 +71,9 @@ export interface PitchStore {
    * @returns true when the form is valid and submission proceeds.
    */
   submit(onSuccess?: (values: PitchForm) => void): boolean;
+
+  confirmDialog(): void;
+  dismissDialog(): void;
 
 }
 
@@ -115,17 +121,43 @@ function runEngine(values: PitchForm): EvaluationResult<PitchForm> {
   return evaluate(values, pitchRules);
 }
 
+interface PendingChange {
+  path: PathsOf<PitchForm>;
+  nextValues: PitchForm;
+  nextResult: EvaluationResult<PitchForm>;
+  warningDialog: DialogEvent | null;
+}
+
+let pendingChange: PendingChange | null = null;
+
 export const usePitchStore = create<PitchStore>((set, get) => ({
   values: defaultPitchValues,
   result: runEngine(defaultPitchValues),
   zodErrors: {},
   isSubmitting: false,
   isSubmitted: false,
+  activeDialog: null,
 
   setValue(path, value) {
-    const nextValues = deepSet(get().values, path as string, value) as PitchForm;
+    const prevValues = get().values;
+    const nextValues = deepSet(prevValues, path as string, value) as PitchForm;
+    const dialogs = collectDialogs(prevValues, nextValues, pitchRules, {
+      changedFields: new Set([path]),
+    });
+    const confirmDialog = dialogs.find((dialog) => dialog.type === 'confirm') ?? null;
+    const warningDialog = dialogs.find((dialog) => dialog.type === 'warning') ?? null;
     const nextResult = runEngine(nextValues);
+
+    if (confirmDialog) {
+      pendingChange = { path, nextValues, nextResult, warningDialog };
+      set({ activeDialog: confirmDialog, isSubmitted: false });
+      return;
+    }
+
     set({ values: nextValues, result: nextResult, isSubmitted: false });
+    if (warningDialog) {
+      set({ activeDialog: warningDialog });
+    }
   },
 
   reset() {
@@ -135,7 +167,9 @@ export const usePitchStore = create<PitchStore>((set, get) => ({
       zodErrors: {},
       isSubmitting: false,
       isSubmitted: false,
+      activeDialog: null,
     });
+    pendingChange = null;
   },
 
   submit(onSuccess) {
@@ -157,5 +191,26 @@ export const usePitchStore = create<PitchStore>((set, get) => ({
     }
 
     return isValid;
+  },
+
+  confirmDialog() {
+    if (!pendingChange) {
+      set({ activeDialog: null });
+      return;
+    }
+
+    const nextWarning = pendingChange.warningDialog;
+    set({
+      values: pendingChange.nextValues,
+      result: pendingChange.nextResult,
+      isSubmitted: false,
+      activeDialog: nextWarning,
+    });
+    pendingChange = null;
+  },
+
+  dismissDialog() {
+    pendingChange = null;
+    set({ activeDialog: null });
   },
 }));

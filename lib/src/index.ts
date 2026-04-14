@@ -36,6 +36,9 @@ export type {
   EvalContext,
   Rule,
   EvaluationResult,
+  DialogType,
+  DialogDefinition,
+  DialogEvent,
 } from './types.js';
 
 export { defaultFieldMeta } from './types.js';
@@ -45,6 +48,7 @@ export {
   mergeResults,
   getFieldMeta,
   rulesForFields,
+  collectDialogs,
 } from './engine.js';
 
 export { getPath, setPath } from './utils.js';

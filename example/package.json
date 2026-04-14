@@ -11,8 +11,10 @@
   },
   "dependencies": {
     "@react-rules-engine/lib": "link:../lib",
+    "i18next": "26.0.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-i18next": "17.0.2",
     "zod": "^4.3.6",
     "zustand": "^5.0.12"
   },

@@ -21,6 +21,7 @@ import React from 'react';
 import { usePitchStore } from '../store/pitchStore';
 import { defaultFieldMeta } from '@react-rules-engine/lib';
 import type { PathsOf } from '@react-rules-engine/lib';
+import { useTranslation } from 'react-i18next';
 import type { PitchForm } from '../schema/pitchSchema';
 
 interface FormFieldProps {
@@ -34,6 +35,7 @@ const EMPTY_META = defaultFieldMeta();
 const EMPTY_ZOD_ERRORS: string[] = [];
 
 export function FormField({ path, label, children, hint }: FormFieldProps) {
+  const { t } = useTranslation();
   const meta = usePitchStore((s) => s.result.fields[path] ?? EMPTY_META);
   const zodErrors = usePitchStore((s) => s.zodErrors[path as string] ?? EMPTY_ZOD_ERRORS);
 
@@ -104,7 +106,7 @@ export function FormField({ path, label, children, hint }: FormFieldProps) {
       {/* Warnings */}
       {hasWarning && (
         <ul style={{ margin: '0.25rem 0 0', padding: 0, listStyle: 'none' }}>
-          {meta.warnings.map((w, i) => (
+          {meta.warnings.map((w: string, i: number) => (
             <li
               key={i}
               style={{
@@ -117,7 +119,7 @@ export function FormField({ path, label, children, hint }: FormFieldProps) {
                 marginTop: '3px',
               }}
             >
-              ⚠ {w}
+              ⚠ {t(w, { defaultValue: w })}
             </li>
           ))}
         </ul>
@@ -126,7 +128,7 @@ export function FormField({ path, label, children, hint }: FormFieldProps) {
       {/* Errors (engine + Zod combined) */}
       {hasError && (
         <ul style={{ margin: '0.25rem 0 0', padding: 0, listStyle: 'none' }}>
-          {allErrors.map((e, i) => (
+          {allErrors.map((e: string, i: number) => (
             <li
               key={i}
               style={{
@@ -139,7 +141,7 @@ export function FormField({ path, label, children, hint }: FormFieldProps) {
                 marginTop: '3px',
               }}
             >
-              ✖ {e}
+              ✖ {t(e, { defaultValue: e })}
             </li>
           ))}
         </ul>

@@ -16,7 +16,13 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { evaluate, mergeResults, getFieldMeta, rulesForFields } from '../src/engine.js';
+import {
+  evaluate,
+  mergeResults,
+  getFieldMeta,
+  rulesForFields,
+  collectDialogs,
+} from '../src/engine.js';
 import { defaultFieldMeta } from '../src/types.js';
 import type { Rule } from '../src/types.js';
 
@@ -545,5 +551,85 @@ describe('evaluate – multiple effects per rule', () => {
     expect(result.fields['financials.revenue']?.disabled).toBe(true);
     expect(result.fields['financials.currency']?.disabled).toBe(true);
     expect(result.fields['financials.revenue']?.warnings).toContain('Account suspended');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 11. Dialog collection
+// ---------------------------------------------------------------------------
+
+describe('collectDialogs', () => {
+  it('emits confirm/warning dialogs when transition conditions match', () => {
+    const prev = makeForm({ meta: { type: 'company', status: 'active' } });
+    const next = makeForm({ meta: { type: 'individual', status: 'suspended' } });
+
+    const rules: Rule<DeepForm>[] = [
+      {
+        id: 'confirm-type-change',
+        dependsOn: ['meta.type'],
+        when: () => true,
+        then: [],
+        dialog: {
+          type: 'confirm',
+          titleKey: 'dialog.typeChange.title',
+          messageKey: 'dialog.typeChange.message',
+          condition: (before, after) => before.meta.type !== after.meta.type,
+        },
+      },
+      {
+        id: 'warning-status-change',
+        dependsOn: ['meta.status'],
+        when: () => true,
+        then: [],
+        dialog: {
+          type: 'warning',
+          titleKey: 'dialog.statusWarn.title',
+          messageKey: 'dialog.statusWarn.message',
+          condition: (before, after) => before.meta.status !== after.meta.status,
+        },
+      },
+    ];
+
+    const dialogs = collectDialogs(prev, next, rules);
+    expect(dialogs).toHaveLength(2);
+    expect(dialogs[0]?.type).toBe('confirm');
+    expect(dialogs[1]?.type).toBe('warning');
+  });
+
+  it('filters by changedFields when provided', () => {
+    const prev = makeForm({ meta: { type: 'company', status: 'active' } });
+    const next = makeForm({ meta: { type: 'individual', status: 'suspended' } });
+    const rules: Rule<DeepForm>[] = [
+      {
+        id: 'confirm-type-change',
+        dependsOn: ['meta.type'],
+        when: () => true,
+        then: [],
+        dialog: {
+          type: 'confirm',
+          titleKey: 'dialog.typeChange.title',
+          messageKey: 'dialog.typeChange.message',
+          condition: () => true,
+        },
+      },
+      {
+        id: 'warning-status-change',
+        dependsOn: ['meta.status'],
+        when: () => true,
+        then: [],
+        dialog: {
+          type: 'warning',
+          titleKey: 'dialog.statusWarn.title',
+          messageKey: 'dialog.statusWarn.message',
+          condition: () => true,
+        },
+      },
+    ];
+
+    const dialogs = collectDialogs(prev, next, rules, {
+      changedFields: new Set(['meta.type'] as const),
+    });
+    expect(dialogs).toHaveLength(1);
+    expect(dialogs[0]?.ruleId).toBe('confirm-type-change');
   });
 });

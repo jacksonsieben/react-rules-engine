@@ -81,6 +81,29 @@ export interface FieldMeta {
 }
 
 // ---------------------------------------------------------------------------
+// Dialogs
+// ---------------------------------------------------------------------------
+
+/** Supported built-in dialog types. */
+export type DialogType = 'confirm' | 'warning';
+
+/** Rule-level dialog definition for transition checks (prev -> next). */
+export interface DialogDefinition<T> {
+  type: DialogType;
+  titleKey: string;
+  messageKey: string;
+  condition: (prevValues: T, nextValues: T) => boolean;
+}
+
+/** Dialog event returned by `collectDialogs`. */
+export interface DialogEvent {
+  ruleId: string;
+  type: DialogType;
+  titleKey: string;
+  messageKey: string;
+}
+
+// ---------------------------------------------------------------------------
 // Effects
 // ---------------------------------------------------------------------------
 
@@ -163,6 +186,12 @@ export interface Rule<T> {
    * Multiple effects may target different fields.
    */
   then: Effect<T>[];
+
+  /**
+   * Optional dialog request emitted on transitions (prev -> next) when
+   * `collectDialogs` evaluates this rule.
+   */
+  dialog?: DialogDefinition<T>;
 
   /**
    * Higher-priority rules run first.  When two rules set `hidden` or

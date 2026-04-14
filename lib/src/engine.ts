@@ -19,6 +19,7 @@ import {
   EvaluationResult,
   FieldMeta,
   PathsOf,
+  DialogEvent,
   defaultFieldMeta,
 } from './types.js';
 import { getPath } from './utils.js';
@@ -36,6 +37,14 @@ function buildContext<T>(values: T): EvalContext<T> {
       return getPath(values, path as string) as any;
     },
   };
+}
+
+function hasDependencyChange<T>(rule: Rule<T>, prevValues: T, nextValues: T): boolean {
+  return rule.dependsOn.some((dep) => {
+    const prev = getPath(prevValues, dep as string);
+    const next = getPath(nextValues, dep as string);
+    return !Object.is(prev, next);
+  });
 }
 
 /** Retrieves or lazily creates a `FieldMeta` entry in the map. */
@@ -224,4 +233,55 @@ export function rulesForFields<T>(
 ): Rule<T>[] {
   const fieldSet = new Set<PathsOf<T>>(fields);
   return rules.filter((r) => r.dependsOn.some((dep) => fieldSet.has(dep)));
+}
+
+/**
+ * Collects dialog requests for a value transition (`prevValues` -> `nextValues`).
+ * Only rules with `dialog` are considered.
+ */
+export function collectDialogs<T>(
+  prevValues: T,
+  nextValues: T,
+  rules: Rule<T>[],
+  options?: { changedFields?: Set<PathsOf<T>> }
+): DialogEvent[] {
+  const changedFields = options?.changedFields;
+  const sorted = [...rules].sort(
+    (a, b) => (b.priority ?? 0) - (a.priority ?? 0)
+  );
+  const dialogs: DialogEvent[] = [];
+
+  for (const rule of sorted) {
+    if (!rule.dialog) continue;
+
+    if (
+      changedFields !== undefined &&
+      !rule.dependsOn.some((dep) => changedFields.has(dep))
+    ) {
+      continue;
+    }
+
+    if (changedFields === undefined && !hasDependencyChange(rule, prevValues, nextValues)) {
+      continue;
+    }
+
+    let shouldEmit = false;
+    try {
+      shouldEmit = rule.dialog.condition(prevValues, nextValues);
+    } catch (err) {
+      console.error(`[rules-engine] Dialog condition for rule "${rule.id}" threw:`, err);
+      shouldEmit = false;
+    }
+
+    if (shouldEmit) {
+      dialogs.push({
+        ruleId: rule.id,
+        type: rule.dialog.type,
+        titleKey: rule.dialog.titleKey,
+        messageKey: rule.dialog.messageKey,
+      });
+    }
+  }
+
+  return dialogs;
 }
