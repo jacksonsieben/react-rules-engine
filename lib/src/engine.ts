@@ -75,6 +75,11 @@ function applyEffect<T>(
       meta.disabled = effect.value;
       break;
     }
+    case 'setRequired': {
+      const meta = getOrCreate(fields, effect.field);
+      meta.required = effect.value;
+      break;
+    }
     case 'addWarning': {
       const meta = getOrCreate(fields, effect.field);
       meta.warnings.push(effect.message);
@@ -106,7 +111,7 @@ function applyEffect<T>(
  * original declaration order is preserved (stable sort).
  *
  * **Collision / override semantics**
- * - `setHidden` / `setDisabled`: last writer wins (later rule overrides earlier).
+ * - `setHidden` / `setDisabled` / `setRequired`: last writer wins (later rule overrides earlier).
  * - `addWarning` / `addError` / `addFormError`: additive — all messages accumulate.
  *
  * **Incremental hints**
@@ -182,7 +187,7 @@ export function evaluate<T>(
  * Merges two `EvaluationResult` objects (e.g. incremental + baseline).
  *
  * Merge semantics mirror those of `evaluate`:
- * - `setHidden`/`setDisabled`: `next` overrides `base`
+ * - `setHidden`/`setDisabled`/`setRequired`: `next` overrides `base`
  * - warnings/errors/formErrors: concatenated (deduplication not applied)
  */
 export function mergeResults<T>(
@@ -198,6 +203,7 @@ export function mergeResults<T>(
     fields[key] = {
       hidden: nextMeta.hidden,
       disabled: nextMeta.disabled,
+      required: nextMeta.required,
       warnings: [...baseMeta.warnings, ...nextMeta.warnings],
       errors: [...baseMeta.errors, ...nextMeta.errors],
     };

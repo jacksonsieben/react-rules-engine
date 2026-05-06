@@ -201,6 +201,19 @@ describe('evaluate – effect types', () => {
     expect(result.fields['financials.revenue']?.disabled).toBe(true);
   });
 
+  it('setRequired sets required', () => {
+    const rules: Rule<DeepForm>[] = [
+      {
+        id: 'r-required',
+        dependsOn: ['meta.type'],
+        when: () => true,
+        then: [{ type: 'setRequired', field: 'contact.personal.firstName', value: true }],
+      },
+    ];
+    const result = evaluate(makeForm(), rules);
+    expect(result.fields['contact.personal.firstName']?.required).toBe(true);
+  });
+
   it('addWarning accumulates warnings', () => {
     const rules: Rule<DeepForm>[] = [
       {
@@ -443,6 +456,29 @@ describe('mergeResults', () => {
     const merged = mergeResults(base, next);
     expect(merged.fields['financials.revenue']?.errors).toEqual(['Err B', 'Err N']);
     expect(merged.isValid).toBe(false);
+  });
+
+  it('next result overrides required flag', () => {
+    const base = evaluate(makeForm(), [
+      {
+        id: 'base-required',
+        dependsOn: ['meta.type'],
+        when: () => true,
+        then: [{ type: 'setRequired', field: 'contact.personal.lastName', value: true }],
+      },
+    ]);
+
+    const next = evaluate(makeForm(), [
+      {
+        id: 'next-required',
+        dependsOn: ['meta.type'],
+        when: () => true,
+        then: [{ type: 'setRequired', field: 'contact.personal.lastName', value: false }],
+      },
+    ]);
+
+    const merged = mergeResults(base, next);
+    expect(merged.fields['contact.personal.lastName']?.required).toBe(false);
   });
 });
 

@@ -74,6 +74,8 @@ export interface FieldMeta {
   hidden: boolean;
   /** When `true` the input should be disabled/non-interactive. */
   disabled: boolean;
+  /** When `true` the field should be treated as required by the UI. */
+  required: boolean;
   /** Non-blocking messages the user should be aware of. */
   warnings: string[];
   /** Blocking validation messages (field is invalid). */
@@ -114,6 +116,7 @@ export interface DialogEvent {
 export type Effect<T> =
   | { type: 'setHidden'; field: PathsOf<T>; value: boolean }
   | { type: 'setDisabled'; field: PathsOf<T>; value: boolean }
+  | { type: 'setRequired'; field: PathsOf<T>; value: boolean }
   | { type: 'addWarning'; field: PathsOf<T>; message: string }
   | { type: 'addError'; field: PathsOf<T>; message: string }
   /** Appends a form-level (not field-level) error message. */
@@ -238,5 +241,5 @@ export interface EvaluationResult<T> {
 
 /** Returns a pristine `FieldMeta` (nothing hidden/disabled/errored). */
 export function defaultFieldMeta(): FieldMeta {
-  return { hidden: false, disabled: false, warnings: [], errors: [] };
+  return { hidden: false, disabled: false, required: false, warnings: [], errors: [] };
 }
